@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CKD DPM Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#0d1117;--card:#161b22;--card2:#21262d;--border:#30363d;--border2:#444c56;
+  --text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--accent-bg:#1f3550;
+  --amber:#d29922;--amber-bg:#272115;--green:#3fb950;--red:#f85149;--red-bg:#2d1117;
+  --radius:8px;--shadow:0 4px 16px #01040a60;
+  font-family:'IBM Plex Sans KR',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);min-height:100vh;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* Layout */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);}
+.sidebar-logo .title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);letter-spacing:.5px;}
+.sidebar-logo .ver{font-size:10px;color:var(--muted);margin-top:2px;font-family:'IBM Plex Mono',monospace;}
+.nav-items{padding:12px 8px;flex:1;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--muted);margin-bottom:2px;border:none;background:none;width:100%;text-align:left;transition:all .1s;}
+.nav-item:hover{background:var(--card2);color:var(--text);}
+.nav-item.on{background:var(--accent-bg);color:var(--accent);font-weight:600;}
+.nav-item i{font-size:16px;flex-shrink:0;}
+.sidebar-bottom{padding:12px 8px;border-top:1px solid var(--border);}
+.upload-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:9px;border-radius:6px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:opacity .1s;}
+.upload-btn:hover{opacity:.85;}
+.save-status{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center;gap:5px;}
+
+.main{margin-left:220px;padding:24px 28px;min-height:100vh;}
+.page-header{margin-bottom:20px;}
+.page-title{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--muted);}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.stat-l{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;font-family:'IBM Plex Mono',monospace;}
+.stat-v{font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace;}
+
+/* Panel */
+.panel{display:none;}.panel.on{display:block;}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.search-wrap{position:relative;min-width:200px;max-width:300px;}
+.search-wrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
+.search{width:100%;padding:7px 10px 7px 32px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card2);color:var(--text);font-family:inherit;outline:none;transition:border .1s;}
+.search:focus{border-color:var(--accent);}
+.pills{display:flex;gap:5px;flex-wrap:wrap;}
+.pill{font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;font-family:inherit;transition:all .1s;}
+.pill.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+.legend{display:flex;gap:12px;align-items:center;margin-left:auto;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:5px;}
+.ld{width:8px;height:8px;border-radius:2px;}
+.count-badge{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 13px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text);cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .1s;}
+.btn:hover{background:var(--border);}
+.btn i{font-size:14px;}
+.btn-accent{background:var(--accent-bg);color:var(--accent);border-color:var(--accent);}
+.btn-warn{color:var(--amber);border-color:var(--amber);}
+.btn-warn:hover{background:var(--amber-bg);}
+.btn-danger{color:var(--red);border-color:var(--red);}
+.btn-danger:hover{background:var(--red-bg);}
+.btn:disabled{opacity:.3;cursor:default;pointer-events:none;}
+
+/* Table */
+.tbl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;cursor:pointer;user-select:none;background:var(--card2);font-family:'IBM Plex Mono',monospace;}
+thead th:hover{color:var(--text);}
+thead th.sorted{color:var(--accent);}
+thead th.ns{cursor:default;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .07s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--card2);}
+tbody tr.row-sel{background:var(--accent-bg);}
+td{padding:10px 12px;vertical-align:middle;font-size:13px;}
+
+/* Badge */
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;white-space:nowrap;letter-spacing:.3px;font-family:'IBM Plex Mono',monospace;}
+.b-a{background:#3d1515;color:#f47067;border:1px solid #f4706740;}
+.b-m{background:#112233;color:#58a6ff;border:1px solid #58a6ff40;}
+.b-mo{background:#0d2318;color:#3fb950;border:1px solid #3fb95040;}
+.b-ca{background:#2a1d00;color:#d29922;border:1px solid #d2992240;}
+.b-f{background:#1e1230;color:#bc8cff;border:1px solid #bc8cff40;}
+
+/* DPM bars */
+.dpm-block{display:flex;flex-direction:column;gap:5px;min-width:200px;}
+.dpm-row{display:flex;align-items:center;gap:8px;}
+.dpm-bar{height:5px;border-radius:2px;min-width:2px;flex-shrink:0;}
+.bar-avg{background:#30363d;}.bar-exp{background:var(--accent);}.bar-mod{background:var(--amber);}
+.dpm-info{display:flex;flex-direction:column;gap:1px;}
+.dpm-val{font-size:12px;font-family:'IBM Plex Mono',monospace;}
+.dpm-lbl{font-size:10px;color:var(--muted);}
+.v-avg{color:var(--muted);}.v-exp{font-weight:700;color:var(--text);}.v-mod{font-weight:700;color:var(--amber);}
+.delta{font-size:10px;margin-left:3px;font-weight:700;font-family:'IBM Plex Mono',monospace;}
+.d-up{color:var(--green);}.d-dn{color:var(--red);}
+.pd-tag{font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);padding:1px 6px;border-radius:3px;margin-left:5px;font-family:'IBM Plex Mono',monospace;border:1px solid #d2992240;}
+.mod-tag{font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);padding:1px 6px;border-radius:3px;margin-left:5px;font-family:'IBM Plex Mono',monospace;border:1px solid #d2992240;}
+.chk{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);}
+.rk{font-size:11px;color:var(--muted);text-align:right;font-family:'IBM Plex Mono',monospace;}
+.bbar{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.empty{text-align:center;padding:5rem 1rem;color:var(--muted);}
+.empty i{font-size:40px;display:block;margin-bottom:12px;opacity:.3;}
+.empty p{font-size:14px;margin-bottom:1.2rem;}
+.no-result{padding:2rem;text-align:center;color:var(--muted);font-size:13px;}
+
+/* Data table */
+.dtbl{width:100%;border-collapse:collapse;}
+.dtbl thead th{font-size:10px;font-weight:700;color:var(--muted);padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:var(--card2);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;}
+.dtbl tbody tr{border-bottom:1px solid var(--border);}
+.dtbl tbody tr:last-child{border-bottom:none;}
+.dtbl tbody tr:hover{background:var(--card2);}
+.dtbl tbody tr.row-mod{background:#1e1800;}
+.dtbl td{padding:7px 10px;font-size:12px;white-space:nowrap;vertical-align:middle;font-family:'IBM Plex Mono',monospace;}
+.td-name{font-family:'IBM Plex Sans KR',sans-serif;font-weight:600;color:var(--text);}
+.td-muted{color:var(--muted);}
+.td-content{max-width:140px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-family:'IBM Plex Sans KR',sans-serif;}
+.ci{font-size:12px;width:80px;padding:4px 7px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;}
+.ci:focus{outline:none;border-color:var(--accent);}
+.ci.mod{border-color:var(--amber);background:var(--amber-bg);color:var(--amber);font-weight:600;}
+.th-tip{display:inline-flex;align-items:center;gap:3px;position:relative;}
+.th-tip:hover .tooltip{opacity:1;pointer-events:auto;transform:translateY(0);}
+.tooltip{position:absolute;top:calc(100% + 6px);left:0;z-index:9999;background:#161b22;color:var(--text);font-size:11px;font-weight:400;line-height:1.6;padding:8px 11px;border-radius:6px;white-space:pre-wrap;width:220px;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s;box-shadow:0 4px 16px #00000080;border:1px solid var(--border);font-family:'IBM Plex Sans KR',sans-serif;}
+.tip-ico{font-size:11px;color:var(--muted);}
+
+/* Delay table */
+.dl-tbl{width:100%;border-collapse:collapse;}
+.dl-tbl thead th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--card2);text-align:left;white-space:nowrap;font-family:'IBM Plex Mono',monospace;}
+.dl-tbl thead th .sub{font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;display:block;margin-top:1px;color:var(--muted);}
+.dl-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+.dl-tbl tbody tr:last-child td{border-bottom:none;}
+.dl-tbl tbody tr:hover{background:var(--card2);}
+.dl-tbl tbody tr.has-delay{background:#1e1800;}
+.dl-input{font-size:13px;width:75px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;}
+.dl-input:focus{outline:none;border-color:var(--accent);}
+.cyc{font-size:13px;font-weight:700;font-family:'IBM Plex Mono',monospace;}
+
+/* Compare */
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:8px;}
+.cmp-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.cmp-card.best{border-color:var(--accent);}
+.cmp-best{font-size:10px;font-weight:700;background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:3px;display:inline-block;margin-bottom:8px;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;}
+.cmp-name{font-size:14px;font-weight:700;margin:6px 0 2px;}
+.cmp-dpm{font-size:26px;font-weight:800;margin:8px 0 4px;font-family:'IBM Plex Mono',monospace;}
+.cmp-bar-bg{height:4px;background:var(--border);border-radius:2px;margin-bottom:14px;}
+.cmp-bar-fill{height:4px;border-radius:2px;background:var(--accent);}
+.cmp-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);}
+.cmp-row:last-child{border:none;}
+.cmp-lbl{color:var(--muted);}
+.cmp-val{font-family:'IBM Plex Mono',monospace;font-weight:500;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="title">CKD_DPM.exe</div>
+    <div class="ver">damage per minute calculator</div>
+  </div>
+  <div class="nav-items">
+    <button class="nav-item on" onclick="goTab('dpm',this)"><i class="ti ti-chart-bar-popular"></i>DPM 표</button>
+    <button class="nav-item" onclick="goTab('data',this)"><i class="ti ti-table"></i>데이터 편집</button>
+    <button class="nav-item" onclick="goTab('delay',this)"><i class="ti ti-clock-bolt"></i>후딜레이</button>
+    <button class="nav-item" onclick="goTab('compare',this)"><i class="ti ti-git-compare"></i>무기 비교</button>
+  </div>
+  <div class="sidebar-bottom">
+    <label class="upload-btn" style="cursor:pointer;">
+      <i class="ti ti-upload"></i>CSV 업로드
+      <input type="file" id="fi" accept=".csv" style="display:none" onchange="handleFile(this)">
+    </label>
+    <div class="save-status" id="ss"><i class="ti ti-database-off" style="font-size:12px;"></i>데이터 없음</div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="statStrip" class="stats" style="display:none;"></div>
+
+  <!-- DPM 표 -->
+  <div id="tab-dpm" class="panel on">
+    <div class="toolbar">
+      <div class="search-wrap"><i class="ti ti-search"></i><input class="search" type="text" placeholder="무기 검색..." id="dpmSearch" oninput="renderDPM()"></div>
+      <div class="pills" id="fps"></div>
+      <span class="count-badge" id="dpmCount"></span>
+      <div class="legend">
+        <span class="leg"><span class="ld" style="background:#30363d;"></span>평균 DPM</span>
+        <span class="leg"><span class="ld" style="background:#58a6ff;"></span>기대 DPM <span style="font-size:10px;">(크리 반영)</span></span>
+        <span class="leg"><span class="ld" style="background:#d29922;"></span>수정 전 원본</span>
+      </div>
+    </div>
+    <div class="tbl-card"><div class="tbl-scroll"><table>
+      <thead><tr>
+        <th class="ns" style="width:18px;"><input type="checkbox" class="chk" id="ca" onchange="toggleAll(this)"></th>
+        <th class="rk ns">#</th>
+        <th onclick="sb('name')">name</th>
+        <th onclick="sb('desc')">#desc</th>
+        <th onclick="sb('avg_dmg')">avg dmg</th>
+        <th onclick="sb('cp')">crit %</th>
+        <th onclick="sb('cm')">crit ×</th>
+        <th onclick="sb('cycle')">cycle</th>
+        <th onclick="sb('dpm')" class="sorted">dpm ↓<br><span style="font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">avg / expected(crit)</span></th>
+        <th onclick="sb('boost')">crit boost</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div></div>
+    <div class="bbar">
+      <button class="btn btn-accent" id="cmpBtn" style="display:none;" onclick="goCompare()"><i class="ti ti-git-compare"></i>선택 무기 비교</button>
+      <button class="btn btn-danger" onclick="clearAll()" style="margin-left:auto;"><i class="ti ti-trash"></i>초기화</button>
+    </div>
+  </div>
+
+  <!-- 데이터 편집 -->
+  <div id="tab-data" class="panel">
+    <div class="toolbar">
+      <div class="search-wrap"><i class="ti ti-search"></i><input class="search" type="text" placeholder="무기 검색..." id="dataSearch" oninput="renderData()"></div>
+      <span class="count-badge" id="dataCount"></span>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span id="modCount" style="font-size:12px;color:var(--amber);display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;"></span>
+        <button class="btn btn-warn" onclick="resetAllMod()"><i class="ti ti-refresh"></i>전체 원본 복원</button>
+      </div>
+    </div>
+    <div class="tbl-card"><div class="tbl-scroll">
+      <table class="dtbl"><thead id="dataHead"></thead><tbody id="dataBody"></tbody></table>
+    </div></div>
+  </div>
+
+  <!-- 후딜레이 -->
+  <div id="tab-delay" class="panel">
+    <div class="toolbar">
+      <div class="search-wrap"><i class="ti ti-search"></i><input class="search" type="text" placeholder="무기 검색..." id="delaySearch" oninput="renderDelay()"></div>
+      <button class="pill" id="delayOnlyBtn" onclick="toggleDelayOnly()">후딜레이 있는 무기만</button>
+      <span class="count-badge" id="delayCount"></span>
+    </div>
+    <div class="tbl-card"><div class="tbl-scroll"><table class="dl-tbl">
+      <thead><tr>
+        <th>name</th><th>#desc</th>
+        <th>cooldown<span class="sub">발사 간격 (CSV 원본)</span></th>
+        <th>burst<span class="sub">연사 발수</span></th>
+        <th>post_delay<span class="sub">후딜레이 (s)</span></th>
+        <th>→ cycle</th>
+      </tr></thead>
+      <tbody id="delayBody"></tbody>
+    </table></div></div>
+  </div>
+
+  <!-- 무기 비교 -->
+  <div id="tab-compare" class="panel">
+    <div class="toolbar">
+      <div class="search-wrap"><i class="ti ti-search"></i><input class="search" type="text" placeholder="비교 목록 검색..." id="cmpSearch" oninput="renderCompare()"></div>
+      <span class="count-badge" id="cmpCount"></span>
+    </div>
+    <div class="cmp-grid" id="cmpGrid"><p style="color:var(--muted);font-size:13px;">선택된 무기가 없습니다.</p></div>
+  </div>
+</div>
+
+<script>
+const SK='ckd_orig', DK='ckd_delay', MK='ckd_mod';
+
+function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.error('localStorage error',e);}}
+function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
+
+let orig=[],mods=[],delays={},sk='dpm',sa=false,af='all',sel=new Set(),delayOnly=false;
+
+const ALL_COLS=['skill_id','name','content','type','#desc','purchase_conditions','sub_conditions','energy','damage_min','damage_max','critical_ratio','critical_damage_ratio_min','critical_damage_ratio_max','range','aoe','force','cooldown','duration','max_bullet','max_qunt','bullet_currency_type','bullet_price','starting_skill','skill_currency_type','skill_price','skill_group','skill_mark','skill_grade','reward_skill'];
+const EDITABLE=['damage_min','damage_max','critical_ratio','critical_damage_ratio_min','cooldown'];
+const COL_TIPS={skill_id:'고유 스킬 ID',name:'스킬 이름',content:'스킬 판매대에서 보여줄 설명',type:'Attack = 1\nMobility = 2\nFlex = 3\nCatcher = 4\n\nMech_Attack = 101\nMech_Mobility = 102\nMech_Flex = 103\nMech_Catcher = 104','#desc':'타입 설명 (텍스트)',purchase_conditions:'0 : chicking skill\n1 : BUST skill (vehicle_id)',sub_conditions:'0 : vehicle을 하나라도 가지고 있다면 통과\n1 이상 : 해당 vehicle을 가지고 있어야 통과',energy:'스킬 한번에 사용될 총알수',damage_min:'데미지 최소\n\n샷건류 = 데미지 % 총알 수 = 탄 하나당 데미지',damage_max:'데미지 최대',critical_ratio:'크리티컬 확률\n100배수',critical_damage_ratio_min:'크리티컬 배율 최소 (몇배수)\n해당 값을 100 나눈 값으로 사용',critical_damage_ratio_max:'크리티컬 배율 최대 (몇배수)\n해당 값을 100 나눈 값으로 사용',range:'현재 사용처:\n- 총알이 폭발형인 스킬의 데미지 적용 범위\n  (기본적으로 MECH는 폭발형)\n- 훅샷의 최대 거리',aoe:'현재 사용되지 않는 변수\n(추후 필요 시 사용 가능)',force:'발사되는 힘.\n힘의 크기가 클수록 빠르게 발사',cooldown:'발사 후 다음 발사까지의 대기 시간',duration:'- 총알이 가시적으로 존재하는 시간.\n  총알이 얼마나 멀리 이동할 수 있을 지를 결정 가능\n- 훅 샷의 경우 앵커가 박히고 나서 매달려 있을 수 있는 시간',max_bullet:'총알 충전 시 가지고 다닐 수 있는 최대치',max_qunt:'총알 구매 시 한 클릭에 구입 할 수 있는 최대 총알 수',bullet_currency_type:'총알 구입 시 필요한 재화 타입\n2 : 에그 코인',bullet_price:'총알 한 발 당 가격\n구입 시에는 max_qunt * bullet_price',starting_skill:'0 : 구매해야 되는 스킬\n1 : 치킹에게 그냥 주는 스킬\n2 : 버스트를 사면 그냥 주는 스킬',skill_currency_type:'스킬 구매 시 필요한 재화 타입\n2 : 코인\n3 : 화이트 페더\n5 : 스크랩',skill_price:'스킬 구매 가격',skill_group:'같은 그룹으로 지정된 스킬들은 같은 스킬로 취급함',skill_mark:'0 : None\n1 : New',skill_grade:'0 : None\n1 : Light\n2 : Medium\n3 : Heavy\n4 : Prototype',reward_skill:'보상으로 받는 스킬인지 아닌지\n0 : 보상 아님\n1 : 보상임'};
+
+function grp(d){if(!d)return'flex';const l=d.toLowerCase();if(l==='attack')return'attack';if(l.includes('mech attack'))return'mech';if(l.includes('mobility'))return'mobility';if(l.includes('catcher'))return'catcher';return'flex';}
+const TC={attack:'b-a',mech:'b-m',mobility:'b-mo',catcher:'b-ca',flex:'b-f'};
+const GL={all:'전체',attack:'attack',mech:'mech attack',mobility:'mobility',catcher:'catcher',flex:'flex'};
+const GS=['all','attack','mech','mobility','catcher','flex'];
+
+function calcW(w){
+  const d=delays[w.id]||{};
+  const burst=d.burst!==undefined?d.burst:(w.burst??1);
+  const pd=d.post_delay!==undefined?d.post_delay:(w.post_delay??0);
+  const avg=(w.mn+w.mx)/2,cr=w.cr/10000,cp=w.cr/100,cm=w.cd>0?w.cd/100:1;
+  const ed=avg>0?avg*((1-cr)+cr*cm):0;
+  const cyc=w.c>0?w.c*burst+pd:0,spm=cyc>0?60/cyc:0;
+  const bdpm=avg*burst*spm,dpm=ed*burst*spm;
+  return{...w,avg_dmg:avg,cp,cm,ed,cycle:cyc,bdpm,dpm,boost:bdpm>0?dpm/bdpm:1,burst,post_delay:pd,group:grp(w.desc)};
+}
+function fmt(n){if(!n||n===0)return null;if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return Math.round(n).toLocaleString();}
+function toTitle(s){if(!s)return'';return s.charAt(0).toUpperCase()+s.slice(1).toLowerCase();}
+function isModW(id){const o=orig.find(x=>x.id===id),m=mods.find(x=>x.id===id);if(!o||!m)return false;return o.mn!==m.mn||o.mx!==m.mx||o.cr!==m.cr||o.cd!==m.cd||o.c!==m.c;}
+function getQ(id){return(document.getElementById(id)?.value||'').toLowerCase().trim();}
+function match(w,q){if(!q)return true;return w.name.toLowerCase().includes(q)||w.desc.toLowerCase().includes(q)||w.id.includes(q);}
+
+function parseCSV(text){
+  const tokens=[];let i=0,field='',inQ=false;
+  while(i<text.length){const ch=text[i];if(ch==='"'){if(inQ&&text[i+1]==='"'){field+='"';i+=2;}else{inQ=!inQ;i++;}}else if(ch===','&&!inQ){tokens.push(field);field='';i++;}else if((ch==='\n'||ch==='\r')&&!inQ){if(ch==='\r'&&text[i+1]==='\n')i++;tokens.push(field);tokens.push('\n');field='';i++;}else{field+=ch;i++;}}
+  tokens.push(field);
+  const rows=[];let row=[];for(const t of tokens){if(t==='\n'){if(row.length)rows.push(row);row=[];}else row.push(t);}if(row.length)rows.push(row);
+  let hi=-1,headers=[];for(let r=0;r<Math.min(5,rows.length);r++){if(rows[r].some(c=>c.trim()==='skill_id')){hi=r;headers=rows[r].map(h=>h.trim());break;}}
+  if(hi<0)return[];
+  const col=n=>headers.indexOf(n);
+  const g=(row,v)=>{const c=col(v);return c>=0&&c<row.length?parseFloat(row[c].trim())||0:0;};
+  const gn=(row,v)=>{const c=col(v);if(c<0||c>=row.length)return null;const s=row[c].trim();if(s==='')return null;const n=parseFloat(s);return isNaN(n)?null:n;};
+  const res=[];
+  for(let r=hi+1;r<rows.length;r++){
+    const row=rows[r];if(!row.length)continue;
+    const idStr=row[col('skill_id')]?.trim();if(!idStr||isNaN(parseFloat(idStr)))continue;
+    const raw={};for(const cn of ALL_COLS){const ci=col(cn);raw[cn]=ci>=0&&ci<row.length?row[ci].trim():'';}
+    res.push({id:idStr,raw,name:toTitle(raw['name']||''),desc:raw['#desc']||'',mn:g(row,'damage_min'),mx:g(row,'damage_max'),cr:g(row,'critical_ratio'),cd:g(row,'critical_damage_ratio_min'),c:g(row,'cooldown'),burst:gn(row,'burst')??1,post_delay:gn(row,'post_delay')??0});
+  }
+  return res;
+}
+
+function handleFile(input){
+  const f=input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    const p=parseCSV(e.target.result);
+    if(!p.length){setSS('error','파싱 실패');return;}
+    orig=JSON.parse(JSON.stringify(p));
+    // 기존 수정본이 있으면 유지, 없으면 새로 세팅
+    const savedMod=lsGet(MK);
+    if(savedMod&&savedMod.length){
+      // 새 무기 추가 반영, 기존 수정 유지
+      mods=p.map(w=>{const sm=savedMod.find(x=>x.id===w.id);return sm||w;});
+    }else{
+      mods=JSON.parse(JSON.stringify(p));
+    }
+    saveAll();renderAll();
+    setSS('ok',p.length+'개 무기 로드됨');
+  };r.readAsText(f);
+}
+
+function saveAll(){lsSet(SK,orig);lsSet(DK,delays);lsSet(MK,mods);}
+function loadAll(){
+  const o=lsGet(SK),d=lsGet(DK),m=lsGet(MK);
+  if(o)orig=o;if(d)delays=d;if(m)mods=m;
+  if(!mods.length&&orig.length)mods=JSON.parse(JSON.stringify(orig));
+  renderAll();
+  if(orig.length)setSS('ok','저장된 데이터 ('+orig.length+'개)');
+}
+function setSS(type,msg){
+  const el=document.getElementById('ss');
+  const icon=type==='ok'?'ti-circle-check':type==='error'?'ti-circle-x':'ti-database-off';
+  const color=type==='ok'?'#3fb950':type==='error'?'#f85149':'#8b949e';
+  el.innerHTML=`<i class="ti ${icon}" style="font-size:12px;color:${color};"></i><span>${msg}</span>`;
+}
+
+function renderAll(){renderStats();renderDPM();renderData();renderDelay();renderCompare();}
+
+function renderStats(){
+  const el=document.getElementById('statStrip');
+  if(!mods.length){el.style.display='none';return;}
+  const data=mods.map(calcW).filter(r=>r.dpm>0);
+  const best=data.length?data.reduce((a,b)=>b.dpm>a.dpm?b:a):null;
+  const avg=data.length?data.reduce((s,r)=>s+r.dpm,0)/data.length:0;
+  const mc=mods.filter(w=>isModW(w.id)).length;
+  el.style.display='grid';
+  el.innerHTML=`
+    <div class="stat"><div class="stat-l">총 무기</div><div class="stat-v">${mods.length}</div></div>
+    <div class="stat"><div class="stat-l">최고 기대 DPM</div><div class="stat-v" style="color:var(--accent);">${fmt(best?.dpm)||'-'}</div></div>
+    <div class="stat"><div class="stat-l">최고 무기</div><div class="stat-v" style="font-size:14px;font-family:'IBM Plex Sans KR',sans-serif;">${best?.name||'-'}</div></div>
+    <div class="stat"><div class="stat-l">전투형 평균 DPM</div><div class="stat-v">${fmt(avg)||'-'}</div></div>
+    <div class="stat"><div class="stat-l">수정된 무기</div><div class="stat-v" style="color:${mc>0?'var(--amber)':'var(--muted)'};">${mc>0?mc+'개':'없음'}</div></div>`;
+}
+
+function renderDPM(){
+  document.getElementById('fps').innerHTML=GS.map(g=>`<button class="pill ${af===g?'on':''}" onclick="setF('${g}')">${GL[g]}</button>`).join('');
+  if(!mods.length){
+    document.getElementById('tbody').innerHTML=`<tr><td colspan="10"><div class="empty"><i class="ti ti-database-off"></i><p>CSV를 업로드하여 시작하세요</p></div></td></tr>`;
+    return;
+  }
+  const q=getQ('dpmSearch');
+  let rows=mods.map(calcW);
+  if(af!=='all')rows=rows.filter(r=>r.group===af);
+  if(q)rows=rows.filter(r=>match(r,q));
+  rows.sort((a,b)=>{const va=a[sk],vb=b[sk];if(typeof va==='string')return sa?va.localeCompare(vb):vb.localeCompare(va);return sa?va-vb:vb-va;});
+  const maxD=Math.max(...rows.map(r=>r.dpm),1),sc=100/maxD;
+  document.getElementById('dpmCount').textContent=(q||af!=='all')?rows.length+'개':'';
+  if(!rows.length){document.getElementById('tbody').innerHTML=`<tr><td colspan="10"><div class="no-result">검색 결과 없음</div></td></tr>`;return;}
+  document.getElementById('tbody').innerHTML=rows.map((r,i)=>{
+    const hd=r.avg_dmg>0,hc=r.cp>0&&r.cd>0,hp=r.post_delay>0,isMod=isModW(r.id),isSel=sel.has(r.id);
+    const oc=isMod?calcW(orig.find(w=>w.id===r.id)):null;
+    const cyc=r.cycle>0?(hp?`<b>${+r.cycle.toFixed(2)}s</b><span class="pd-tag">${r.burst}발+${r.post_delay}s</span>`:`${+r.cycle.toFixed(2)}s`):'<span style="color:var(--muted)">-</span>';
+    let dpmB='<span style="color:var(--muted)">-</span>';
+    if(hd&&r.cycle>0){dpmB=`<div class="dpm-block">
+      <div class="dpm-row"><div class="dpm-bar bar-avg" style="width:${Math.round(r.bdpm*sc)}px"></div><div class="dpm-info"><span class="dpm-val v-avg">${fmt(r.bdpm)||'-'}</span><span class="dpm-lbl">평균 DPM</span></div></div>
+      <div class="dpm-row"><div class="dpm-bar bar-exp" style="width:${Math.round(r.dpm*sc)}px"></div><div class="dpm-info"><span class="dpm-val v-exp">${fmt(r.dpm)||'-'}${isMod&&oc?`<span class="delta ${r.dpm>oc.dpm?'d-up':'d-dn'}">${r.dpm>oc.dpm?'▲':'▼'}${fmt(Math.abs(r.dpm-oc.dpm))}</span>`:''}</span><span class="dpm-lbl">기대 DPM (크리 반영)</span></div></div>
+      ${isMod&&oc?`<div class="dpm-row"><div class="dpm-bar bar-mod" style="width:${Math.round(oc.dpm*sc)}px"></div><div class="dpm-info"><span class="dpm-val v-mod">원본 ${fmt(oc.dpm)||'-'}</span><span class="dpm-lbl">수정 전</span></div></div>`:''}
+    </div>`;}
+    return`<tr class="${isSel?'row-sel':''}">
+      <td><input type="checkbox" class="chk" ${isSel?'checked':''} onchange="toggleSel('${r.id}',this)"></td>
+      <td class="rk">${i+1}</td>
+      <td style="font-weight:700;white-space:nowrap">${r.name}${isMod?'<span class="mod-tag">수정됨</span>':''}</td>
+      <td><span class="badge ${TC[r.group]||'b-f'}">${r.desc}</span></td>
+      <td style="font-family:'IBM Plex Mono',monospace;">${hd?Math.round(r.avg_dmg).toLocaleString():'<span style="color:var(--muted)">-</span>'}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;">${r.cp>0?r.cp.toFixed(1)+'%':'<span style="color:var(--muted)">-</span>'}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;">${hc?r.cm.toFixed(2)+'×':'<span style="color:var(--muted)">-</span>'}</td>
+      <td style="white-space:nowrap">${cyc}</td>
+      <td>${dpmB}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--green);">${hd&&hc?'+'+((r.boost-1)*100).toFixed(1)+'%':'<span style="color:var(--muted)">-</span>'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cmpBtn').style.display=sel.size>=2?'inline-flex':'none';
+}
+
+function renderData(){
+  if(!mods.length){document.getElementById('dataHead').innerHTML='';document.getElementById('dataBody').innerHTML='';return;}
+  const q=getQ('dataSearch');
+  const mc=mods.filter(w=>isModW(w.id)).length;
+  document.getElementById('modCount').innerHTML=mc>0?`<i class="ti ti-edit" style="font-size:13px;"></i> ${mc}개 수정됨`:'';
+  const thHTML=ALL_COLS.map(c=>{
+    const tip=COL_TIPS[c],isEd=EDITABLE.includes(c);
+    return`<th style="${isEd?'color:var(--accent);':''}" title="${c}"><span class="th-tip">${c}${isEd?'<span style="font-size:8px;color:var(--accent);margin-left:2px;">✎</span>':''}${tip?`<i class="ti ti-info-circle tip-ico" style="margin-left:3px;"></i><span class="tooltip">${tip}</span>`:''}</span></th>`;
+  }).join('');
+  document.getElementById('dataHead').innerHTML=`<tr>${thHTML}<th style="cursor:default;">복원</th></tr>`;
+  let rows=mods;if(q)rows=rows.filter(w=>match(w,q));
+  document.getElementById('dataCount').textContent=q?rows.length+'개':'';
+  if(!rows.length){document.getElementById('dataBody').innerHTML=`<tr><td colspan="${ALL_COLS.length+1}"><div class="no-result">검색 결과 없음</div></td></tr>`;return;}
+  document.getElementById('dataBody').innerHTML=rows.map(w=>{
+    const o=orig.find(x=>x.id===w.id)||w,isMod=isModW(w.id);
+    const cells=ALL_COLS.map(cn=>{
+      if(EDITABLE.includes(cn)){
+        const oVal=parseFloat(o.raw[cn])||0;
+        const cur=cn==='damage_min'?w.mn:cn==='damage_max'?w.mx:cn==='critical_ratio'?w.cr:cn==='critical_damage_ratio_min'?w.cd:w.c;
+        return`<td><input class="ci ${cur!==oVal?'mod':''}" type="number" value="${cur}" step="${cn==='cooldown'?'0.01':'1'}" onchange="setCellMod('${w.id}','${cn}',this.value);this.classList.toggle('mod',parseFloat(this.value)!==${oVal})"></td>`;
+      }
+      const val=w.raw[cn]||'';
+      return`<td class="${cn==='name'?'td-name':cn==='content'?'td-content':'td-muted'}" title="${cn==='content'?val:''}">${val||'-'}</td>`;
+    }).join('');
+    return`<tr class="${isMod?'row-mod':''}">${cells}<td><button class="btn" style="padding:3px 8px;font-size:11px;" onclick="resetOne('${w.id}')" ${!isMod?'disabled':''}><i class="ti ti-refresh"></i></button></td></tr>`;
+  }).join('');
+}
+
+function renderDelay(){
+  if(!mods.length){document.getElementById('delayBody').innerHTML='';return;}
+  const q=getQ('delaySearch');
+  let rows=mods.map(calcW);
+  if(q)rows=rows.filter(r=>match(r,q));
+  if(delayOnly)rows=rows.filter(r=>r.post_delay>0||r.burst>1);
+  document.getElementById('delayCount').textContent=(q||delayOnly)?rows.length+'개':'';
+  if(!rows.length){document.getElementById('delayBody').innerHTML=`<tr><td colspan="6"><div class="no-result">검색 결과 없음</div></td></tr>`;return;}
+  document.getElementById('delayBody').innerHTML=rows.map(r=>{
+    const hp=r.post_delay>0||r.burst>1;
+    return`<tr class="${hp?'has-delay':''}">
+      <td style="font-weight:700;white-space:nowrap">${r.name}</td>
+      <td><span class="badge ${TC[r.group]||'b-f'}">${r.desc}</span></td>
+      <td style="color:var(--muted);font-family:'IBM Plex Mono',monospace;">${r.c}s</td>
+      <td><input class="dl-input" type="number" value="${r.burst}" min="1" step="1" onchange="setDelay('${r.id}','burst',this.value)"></td>
+      <td><input class="dl-input" type="number" value="${r.post_delay}" min="0" step="0.1" onchange="setDelay('${r.id}','post_delay',this.value)"></td>
+      <td class="cyc">${r.cycle>0?`${+r.cycle.toFixed(2)}s${hp?` <span class="pd-tag">${r.burst}발×${r.c}s+${r.post_delay}s</span>`:''}`:'-'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCompare(){
+  const q=getQ('cmpSearch');
+  let data=mods.map(calcW).filter(r=>sel.has(r.id));
+  if(q)data=data.filter(r=>match(r,q));
+  const grid=document.getElementById('cmpGrid');
+  document.getElementById('cmpCount').textContent=sel.size>0?data.length+'/'+sel.size+'개':'';
+  if(!sel.size){grid.innerHTML='<p style="color:var(--muted);font-size:13px;">선택된 무기가 없습니다.</p>';return;}
+  if(!data.length){grid.innerHTML='<div class="no-result">검색 결과 없음</div>';return;}
+  const maxD=Math.max(...data.map(r=>r.dpm),1);
+  grid.style.gridTemplateColumns=`repeat(${Math.min(data.length,4)},1fr)`;
+  grid.innerHTML=data.map(r=>{
+    const hd=r.avg_dmg>0,hc=r.cp>0&&r.cd>0,isBest=r.dpm===maxD,isMod=isModW(r.id);
+    const oc=isMod?calcW(orig.find(w=>w.id===r.id)):null;
+    return`<div class="cmp-card ${isBest?'best':''}">
+      ${isBest?'<span class="cmp-best">// TOP DPM</span><br>':''}
+      <div style="margin-top:${isBest?4:0}px;display:flex;gap:5px;flex-wrap:wrap;"><span class="badge ${TC[r.group]||'b-f'}">${r.desc}</span>${isMod?'<span class="mod-tag">수정됨</span>':''}</div>
+      <div class="cmp-name">${r.name}</div>
+      <div class="cmp-dpm" style="${isBest?'color:var(--accent);':''}">${fmt(r.dpm)||'-'}</div>
+      ${isMod&&oc?`<div style="font-size:11px;color:var(--amber);margin-bottom:4px;font-family:'IBM Plex Mono',monospace;">원본: ${fmt(oc.dpm)||'-'} <span class="${r.dpm>oc.dpm?'d-up':'d-dn'}">${r.dpm>oc.dpm?'▲':'▼'}${fmt(Math.abs(r.dpm-oc.dpm))}</span></div>`:''}
+      <div class="cmp-bar-bg"><div class="cmp-bar-fill" style="width:${Math.round((r.dpm/maxD)*100)}%"></div></div>
+      <div class="cmp-row"><span class="cmp-lbl">평균 DPM</span><span class="cmp-val">${fmt(r.bdpm)||'-'}</span></div>
+      <div class="cmp-row"><span class="cmp-lbl">평균 데미지</span><span class="cmp-val">${hd?Math.round(r.avg_dmg).toLocaleString():'-'}</span></div>
+      <div class="cmp-row"><span class="cmp-lbl">크리율</span><span class="cmp-val">${r.cp>0?r.cp.toFixed(1)+'%':'-'}</span></div>
+      <div class="cmp-row"><span class="cmp-lbl">크리배율</span><span class="cmp-val">${hc?r.cm.toFixed(2)+'×':'-'}</span></div>
+      <div class="cmp-row"><span class="cmp-lbl">사이클</span><span class="cmp-val">${r.cycle>0?+r.cycle.toFixed(2)+'s':'-'}</span></div>
+      <div class="cmp-row"><span class="cmp-lbl">크리 보정</span><span class="cmp-val" style="color:var(--green);">${hd&&hc?'+'+((r.boost-1)*100).toFixed(1)+'%':'-'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDelayOnly(){delayOnly=!delayOnly;document.getElementById('delayOnlyBtn').classList.toggle('on',delayOnly);renderDelay();}
+function setCellMod(id,cn,val){
+  const w=mods.find(x=>x.id===id);if(!w)return;
+  const n=parseFloat(val)||0;
+  if(cn==='damage_min')w.mn=n;else if(cn==='damage_max')w.mx=n;else if(cn==='critical_ratio')w.cr=n;else if(cn==='critical_damage_ratio_min')w.cd=n;else if(cn==='cooldown')w.c=n;
+  w.raw[cn]=String(n);saveAll();renderDPM();renderStats();
+  const mc=mods.filter(w=>isModW(w.id)).length;
+  document.getElementById('modCount').innerHTML=mc>0?`<i class="ti ti-edit" style="font-size:13px;"></i> ${mc}개 수정됨`:'';
+}
+function setDelay(id,key,val){
+  if(!delays[id])delays[id]={};
+  delays[id][key]=val===''?null:parseFloat(val);
+  saveAll();renderDPM();renderDelay();
+}
+function resetOne(id){
+  const o=orig.find(x=>x.id===id);if(!o)return;
+  const idx=mods.findIndex(x=>x.id===id);
+  if(idx>=0)mods[idx]=JSON.parse(JSON.stringify(o));
+  saveAll();renderDPM();renderData();renderStats();
+}
+function resetAllMod(){
+  if(!confirm('모든 수정을 원본으로 되돌릴까요?'))return;
+  mods=JSON.parse(JSON.stringify(orig));saveAll();renderAll();
+}
+function setF(g){af=g;renderDPM();}
+function sb(k){if(sk===k)sa=!sa;else{sk=k;sa=k==='name';}renderDPM();}
+function toggleSel(id,el){if(el.checked)sel.add(id);else sel.delete(id);renderDPM();renderCompare();}
+function toggleAll(el){
+  const q=getQ('dpmSearch');let rows=mods.map(calcW);if(af!=='all')rows=rows.filter(r=>r.group===af);if(q)rows=rows.filter(r=>match(r,q));
+  if(el.checked)rows.forEach(r=>sel.add(r.id));else rows.forEach(r=>sel.delete(r.id));
+  renderDPM();renderCompare();
+}
+function goCompare(){goTab('compare',document.querySelectorAll('.nav-item')[3]);}
+function goTab(t,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('on'));
+  if(el)el.classList.add('on');
+  if(t==='compare')renderCompare();
+}
+function clearAll(){
+  if(!confirm('localStorage의 모든 데이터를 삭제할까요?'))return;
+  orig=[];mods=[];delays={};sel.clear();delayOnly=false;
+  lsDel(SK);lsDel(DK);lsDel(MK);
+  renderAll();setSS('','');document.getElementById('statStrip').style.display='none';
+}
+loadAll();
+</script>
+</body>
+</html>
